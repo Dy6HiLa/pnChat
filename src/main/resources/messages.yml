@@ -1,0 +1,19 @@
+messages:
+  general:
+    only-player: '&cТолько игроки могут использовать чат.'
+    reload-success: '&aКонфигурация pnChat перезагружена.'
+    empty-message: '&cВведите текст сообщения.'
+    no-nearby-players: '&eРядом никого нет. Сообщение доставлено только вам.'
+  commands:
+    usage: '&cИспользование: /pnchat reload | /pnchat ac'
+  moderation:
+    spam: '&cПожалуйста, не спамьте.'
+    caps: '&cНе злоупотребляйте CAPS LOCK.'
+    profanity: '&cМат запрещён.'
+    link-block: '&cСсылки в чате запрещены. Разрешены только указанные домены.'
+    repeated: '&cСлишком много повторяющихся символов.'
+    too-long: '&cСообщение слишком длинное.'
+  admin-chat:
+    enabled: '&aАдмин-чат включён.'
+    disabled: '&7Админ-чат отключён.'
+    no-permission: '&cНедостаточно прав.'

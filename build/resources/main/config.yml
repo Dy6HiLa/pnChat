@@ -1,0 +1,36 @@
+# Радиус локального чата в блоках
+radius: 100
+
+# Формат сообщений для локального и глобального чата
+local-format: '&8[&aL&8] &7{player} &8» &f{message}'
+global-format: '&8[&dG&8] &f{player} &8» &f{message}'
+
+# Формат упоминаний в сообщениях
+mention-format: '&c@{player}'
+
+# Звуковое уведомление при упоминании
+mention-sound-enabled: true
+mention-sound: 'entity.experience_orb.pickup'
+mention-sound-volume: 1.0
+mention-sound-pitch: 1.0
+mention-sound-cooldown-ms: 4000
+
+# Админ-чат
+admin-chat-enabled: true
+admin-chat-permission: 'pnchat.admin'
+admin-format: '&8[&cADMIN&8] &f{player}&7: &f{message}'
+
+# Цвета и форматирование
+color-permission-required: false
+color-permission: 'pnchat.color'
+allow-hex-colors: true
+max-message-length: 256
+
+# Ссылки
+link-moderation-enabled: true
+
+# Защита от спама, капса и мата
+spam-cooldown-ms: 1500
+spam-max-messages: 2
+caps-threshold: 0.7
+max-repeated-chars: 6
