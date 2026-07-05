@@ -89,7 +89,8 @@ public class ChatModerationService {
                     lines.add(trimmed);
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Не удалось прочитать " + fileName + ": " + ex.getMessage());
         }
 
         return lines;
@@ -122,7 +123,8 @@ public class ChatModerationService {
             }
             var isMutedMethod = user.getClass().getMethod("isMuted");
             return Boolean.TRUE.equals(isMutedMethod.invoke(user));
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            plugin.getLogger().fine("Не удалось проверить mute через Essentials: " + ex.getMessage());
             return false;
         }
     }
@@ -137,7 +139,8 @@ public class ChatModerationService {
             }
             var isMutedMethod = api.getClass().getMethod("isPlayerMuted", UUID.class);
             return Boolean.TRUE.equals(isMutedMethod.invoke(api, player.getUniqueId()));
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            plugin.getLogger().fine("Не удалось проверить mute через LiteBans: " + ex.getMessage());
             return false;
         }
     }
@@ -152,7 +155,8 @@ public class ChatModerationService {
             }
             var isMutedMethod = manager.getClass().getMethod("isMuted", UUID.class);
             return Boolean.TRUE.equals(isMutedMethod.invoke(manager, player.getUniqueId()));
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            plugin.getLogger().fine("Не удалось проверить mute через AdvancedBan: " + ex.getMessage());
             return false;
         }
     }
@@ -167,7 +171,8 @@ public class ChatModerationService {
             }
             var isMutedMethod = api.getClass().getMethod("isMuted", UUID.class);
             return Boolean.TRUE.equals(isMutedMethod.invoke(api, player.getUniqueId()));
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            plugin.getLogger().fine("Не удалось проверить mute через CMI: " + ex.getMessage());
             return false;
         }
     }

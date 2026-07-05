@@ -28,11 +28,11 @@ public final class UpdateChecker {
     private static final Pattern JSON_DOWNLOAD_PATTERN = Pattern.compile("\"(?:downloadUrl|download_url|html_url)\"\\s*:\\s*\"([^\"]+)\"", Pattern.CASE_INSENSITIVE);
     private static final Pattern GITHUB_ASSET_DOWNLOAD_PATTERN = Pattern.compile("\"browser_download_url\"\\s*:\\s*\"([^\"]+?\\.jar[^\"]*)\"", Pattern.CASE_INSENSITIVE);
 
-    private static final String GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/privatenull/pnChat/master/update-manifest.json";
-    private static final String GITHUB_RELEASES_URL = "https://api.github.com/repos/privatenull/pnChat/releases/latest";
-    private static final String GITHUB_TAGS_URL = "https://api.github.com/repos/privatenull/pnChat/tags";
-    private static final String GITHUB_PLUGIN_YML_URL = "https://raw.githubusercontent.com/privatenull/pnChat/master/src/main/resources/plugin.yml";
-    private static final String DEFAULT_DOWNLOAD_URL = "https://github.com/privatenull/pnChat/releases/latest";
+    private static final String GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/Dy6HiLa/pnChat/main/update-manifest.json";
+    private static final String GITHUB_RELEASES_URL = "https://api.github.com/repos/Dy6HiLa/pnChat/releases/latest";
+    private static final String GITHUB_TAGS_URL = "https://api.github.com/repos/Dy6HiLa/pnChat/tags";
+    private static final String GITHUB_PLUGIN_YML_URL = "https://raw.githubusercontent.com/Dy6HiLa/pnChat/main/src/main/resources/plugin.yml";
+    private static final String DEFAULT_DOWNLOAD_URL = "https://github.com/Dy6HiLa/pnChat/releases/latest";
     private static final long CHECK_DELAY_TICKS = 100L;
     private static final long CHECK_PERIOD_MINUTES = 360L;
     private static final boolean NOTIFY_ADMINS_ON_JOIN = true;
@@ -145,12 +145,13 @@ public final class UpdateChecker {
         }
     }
 
-    private static UpdateInfo fetchLatestUpdateInfo() throws Exception {
+    private UpdateInfo fetchLatestUpdateInfo() throws Exception {
         List<UpdateInfo> candidates = new ArrayList<>();
 
         try {
             candidates.add(extractUpdateInfo(fetch(GITHUB_MANIFEST_URL), false));
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            plugin.getLogger().fine("Не удалось получить update-manifest.json: " + ex.getMessage());
         }
 
         try {
@@ -158,7 +159,8 @@ public final class UpdateChecker {
             if (releaseInfo.version() != null && !releaseInfo.version().isBlank()) {
                 candidates.add(releaseInfo);
             }
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            plugin.getLogger().fine("Не удалось получить последний GitHub Release: " + ex.getMessage());
         }
 
         try {
@@ -166,12 +168,14 @@ public final class UpdateChecker {
             if (tagInfo.version() != null && !tagInfo.version().isBlank()) {
                 candidates.add(tagInfo);
             }
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            plugin.getLogger().fine("Не удалось получить GitHub tags: " + ex.getMessage());
         }
 
         try {
             candidates.add(extractSourceUpdateInfo(fetch(GITHUB_PLUGIN_YML_URL)));
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            plugin.getLogger().fine("Не удалось получить plugin.yml из GitHub: " + ex.getMessage());
         }
 
         UpdateInfo best = null;
@@ -216,7 +220,7 @@ public final class UpdateChecker {
         String version = extractVersion(raw, allowPlainTextVersion);
         String download = extractDownloadUrl(raw);
         if ((download == null || download.isBlank()) && version != null && !version.isBlank()) {
-            download = "https://github.com/privatenull/pnChat/releases/tag/" + version;
+            download = "https://github.com/Dy6HiLa/pnChat/releases/tag/" + version;
         }
         return new UpdateInfo(version, download);
     }
@@ -330,7 +334,7 @@ public final class UpdateChecker {
         return List.of(
                 "",
                 "§8§m                                                  ",
-                "§x§4§2§9§F§9§1§lᴘ§x§5§B§A§A§9§3§lɴ§x§7§4§B§4§9§5§lᴄ§x§8§D§B§F§9§7§lʜ§x§A§6§C§A§9§9§lᴀ§x§B§F§D§4§9§B§lᴛ §8| §fВышло обновление",
+                "§x§4§2§9§F§9§1§lpnChat §8| §fВышло обновление",
                 "",
                 "§x§4§2§9§F§9§1▸ §fУстановлена: §7" + current,
                 "§x§4§2§9§F§9§1▸ §fНовая версия: §x§D§8§D§F§9§D" + latestVersion,

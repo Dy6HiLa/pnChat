@@ -3,7 +3,7 @@ version: '${version}'
 main: ru.privatenull.pnChatPlugin
 api-version: '1.21'
 authors: [privatenull]
-softdepend: [Essentials, LiteBans, AdvancedBan]
+softdepend: [Essentials, LiteBans, AdvancedBan, CMI, LuckPerms, PlaceholderAPI]
 commands:
   pnchat:
     description: Управление pnChat

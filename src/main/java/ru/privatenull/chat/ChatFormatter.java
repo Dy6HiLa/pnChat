@@ -8,17 +8,21 @@ import ru.privatenull.pnChatPlugin;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ChatFormatter {
 
-    private static final Pattern MENTION_PATTERN = Pattern.compile("(?<!\\w)@([A-Za-z0-9_]{1,16})");
+    private static final Pattern MENTION_PATTERN = Pattern.compile("(?<![A-Za-z0-9_&@#./:-])@?([A-Za-z0-9_]{1,16})(?![A-Za-z0-9_])");
 
     private final pnChatPlugin plugin;
-    private final Map<UUID, Long> mentionSoundCooldown = new HashMap<>();
+    private final Map<UUID, Long> mentionSoundCooldown = new ConcurrentHashMap<>();
 
     // cached config values
     private String localFormat;
@@ -30,6 +34,9 @@ public class ChatFormatter {
     private float mentionSoundPitch;
     private long mentionSoundCooldownMs;
     private boolean mentionSoundEnabled;
+    private boolean plainNameMentionsEnabled;
+    private int plainNameMentionMinLength;
+    private Set<String> plainNameMentionIgnoredWords;
     private boolean allowHexColors;
     private boolean colorPermRequired;
     private String colorPermission;
@@ -50,6 +57,14 @@ public class ChatFormatter {
         mentionSoundPitch = (float) cfg.getDouble("mention-sound-pitch", 1.0);
         mentionSoundCooldownMs = cfg.getLong("mention-sound-cooldown-ms", 4000L);
         mentionSoundEnabled = cfg.getBoolean("mention-sound-enabled", true);
+        plainNameMentionsEnabled = cfg.getBoolean("plain-name-mentions-enabled", true);
+        plainNameMentionMinLength = Math.max(1, Math.min(16, cfg.getInt("plain-name-mention-min-length", 3)));
+        plainNameMentionIgnoredWords = new HashSet<>();
+        for (String ignoredWord : cfg.getStringList("plain-name-mention-ignored-words")) {
+            if (ignoredWord != null && !ignoredWord.isBlank()) {
+                plainNameMentionIgnoredWords.add(ignoredWord.toLowerCase(Locale.ROOT));
+            }
+        }
         allowHexColors = cfg.getBoolean("allow-hex-colors", true);
         colorPermRequired = cfg.getBoolean("color-permission-required", false);
         colorPermission = cfg.getString("color-permission", "pnchat.color");
@@ -100,7 +115,8 @@ public class ChatFormatter {
             Method method = apiClass.getMethod("setPlaceholders", org.bukkit.OfflinePlayer.class, String.class);
             Object result = method.invoke(null, player, input);
             return result == null ? input : String.valueOf(result);
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            plugin.getLogger().fine("Не удалось применить PlaceholderAPI: " + ex.getMessage());
             return input;
         }
     }
@@ -133,7 +149,8 @@ public class ChatFormatter {
             }
             Object prefix = metaData.getClass().getMethod("getPrefix").invoke(metaData);
             return prefix == null ? "" : String.valueOf(prefix);
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            plugin.getLogger().fine("Не удалось получить префикс LuckPerms: " + ex.getMessage());
             return "";
         }
     }
@@ -160,24 +177,43 @@ public class ChatFormatter {
             return ChatUtils.stripColorCodes(input);
         }
 
-        String result = ChatUtils.color(input);
+        String result = formatMentions(player, input);
+
+        result = ChatUtils.color(result);
         if (allowHexColors) {
             result = ChatUtils.translateHex(result);
         }
-
-        // Handle mentions
-        result = formatMentions(player, result);
 
         return result;
     }
 
     private String formatMentions(Player sender, String input) {
+        if (input == null || input.isBlank()) {
+            return input;
+        }
+
+        Map<String, Player> onlinePlayers = new HashMap<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            onlinePlayers.put(player.getName().toLowerCase(Locale.ROOT), player);
+        }
+
+        if (onlinePlayers.isEmpty()) {
+            return input;
+        }
+
         Matcher matcher = MENTION_PATTERN.matcher(input);
         StringBuilder buffer = new StringBuilder();
 
         while (matcher.find()) {
             String nick = matcher.group(1);
-            Player target = Bukkit.getPlayerExact(nick);
+            String normalizedNick = nick.toLowerCase(Locale.ROOT);
+            boolean explicitMention = matcher.group().startsWith("@");
+            if (!explicitMention && shouldSkipPlainNameMention(normalizedNick)) {
+                matcher.appendReplacement(buffer, Matcher.quoteReplacement(matcher.group()));
+                continue;
+            }
+
+            Player target = onlinePlayers.get(normalizedNick);
             if (target != null && !target.getUniqueId().equals(sender.getUniqueId())) {
                 String replacement = formatMention(sender, target);
                 matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
@@ -189,6 +225,12 @@ public class ChatFormatter {
 
         matcher.appendTail(buffer);
         return buffer.toString();
+    }
+
+    private boolean shouldSkipPlainNameMention(String normalizedNick) {
+        return !plainNameMentionsEnabled
+                || normalizedNick.length() < plainNameMentionMinLength
+                || plainNameMentionIgnoredWords.contains(normalizedNick);
     }
 
     private void playMentionSound(Player target) {
@@ -204,7 +246,12 @@ public class ChatFormatter {
 
         mentionSoundCooldown.put(target.getUniqueId(), now);
 
-        Location location = target.getLocation();
-        target.playSound(location, mentionSound, SoundCategory.MASTER, mentionSoundVolume, mentionSoundPitch);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!target.isOnline()) {
+                return;
+            }
+            Location location = target.getLocation();
+            target.playSound(location, mentionSound, SoundCategory.MASTER, mentionSoundVolume, mentionSoundPitch);
+        });
     }
 }

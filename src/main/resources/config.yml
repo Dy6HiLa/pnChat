@@ -5,8 +5,11 @@ radius: 100
 local-format: '&8[&aL&8] &7{player} &8» &f{message}'
 global-format: '&8[&dG&8] &f{player} &8» &f{message}'
 
-# Формат упоминаний в сообщениях
+# Упоминания игроков
 mention-format: '&c@{player}'
+plain-name-mentions-enabled: true
+plain-name-mention-min-length: 3
+plain-name-mention-ignored-words: []
 
 # Звуковое уведомление при упоминании
 mention-sound-enabled: true

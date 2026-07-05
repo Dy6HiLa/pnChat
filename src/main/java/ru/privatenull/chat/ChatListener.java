@@ -53,16 +53,20 @@ public class ChatListener implements Listener {
         }
 
         if (cleaned.startsWith("!")) {
-            messageService.dispatchGlobalChat(event, player, cleaned.substring(1).trim());
+            String globalMessage = cleaned.substring(1).trim();
+            plugin.getServer().getScheduler().runTask(plugin,
+                    () -> messageService.dispatchGlobalChat(null, player, globalMessage));
             return;
         }
 
         if (adminChatService.isAdminChatEnabled(player)) {
-            messageService.dispatchAdminChat(event, player, cleaned);
+            plugin.getServer().getScheduler().runTask(plugin,
+                    () -> messageService.dispatchAdminChat(null, player, cleaned));
             return;
         }
 
-        messageService.dispatchLocalChat(event, player, cleaned);
+        plugin.getServer().getScheduler().runTask(plugin,
+                () -> messageService.dispatchLocalChat(null, player, cleaned));
     }
 
     @EventHandler
