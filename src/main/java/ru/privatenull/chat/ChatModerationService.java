@@ -8,13 +8,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -22,16 +21,16 @@ import java.util.regex.Pattern;
 
 public class ChatModerationService {
 
-    private static final Pattern URL_PATTERN = Pattern.compile("(?i)https?://\\S+|www\\.\\S+|discord\\.gg/\\S+|discord\\.com/invite/\\S+|t\\.me/\\S+");
+    private static final Pattern URL_PATTERN = Pattern.compile(
+            "(?i)(?:https?://|www\\.)\\S+|(?:discord\\.gg|discord\\.com/invite|t\\.me)/\\S+|\\b(?:[a-z0-9-]+\\.)+[a-z]{2,}(?:/\\S*)?");
     private static final Pattern OBFUSCATED_PROFANITY = Pattern.compile(
-            "(?iu)(?:^|[^a-zа-я0-9])(?:х[уy]й|п[и1u]зд\\w*|[еёe3]б\\w*|бл[я9@]т\\w*|" +
-            "с[уy]к\\w*|долбо[еёe6]б\\w*|у[её]б\\w*|пид[о0]р\\w*|нигг?[еe3]р\\w*|" +
-            "f[\\W_]*u[\\W_]*c[\\W_]*k|n[\\W_]*i[\\W_]*g[\\W_]*g[\\W_]*e[\\W_]*r)(?:$|[^a-zа-я0-9])");
+            "(?iu)(?:^|[^a-zа-я0-9])(?:х[уy]й|п[и1u]зд\\w*|[еёe3]б\\w*|бл[я9@]т\\w*|"
+                    + "с[уy]к\\w*|долбо[еёe6]б\\w*|у[её]б\\w*|пид[о0]р\\w*|нигг?[еe3]р\\w*|"
+                    + "f[\\W_]*u[\\W_]*c[\\W_]*k|n[\\W_]*i[\\W_]*g[\\W_]*g[\\W_]*e[\\W_]*r)(?:$|[^a-zа-я0-9])");
 
     private final pnChatPlugin plugin;
     private final Map<UUID, MessageTiming> messageTimings = new ConcurrentHashMap<>();
 
-    // Cached config values
     private int maxMessageLength;
     private long spamCooldownMs;
     private int spamMaxMessages;
@@ -39,7 +38,6 @@ public class ChatModerationService {
     private int maxRepeatedChars;
     private boolean linkModerationEnabled;
 
-    // Cached lists
     private List<String> blockedTerms;
     private List<String> allowedLinks;
     private boolean listsLoaded;
@@ -85,7 +83,7 @@ public class ChatModerationService {
             String line;
             while ((line = reader.readLine()) != null) {
                 String trimmed = line.trim();
-                if (!trimmed.isEmpty()) {
+                if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
                     lines.add(trimmed);
                 }
             }
@@ -112,7 +110,6 @@ public class ChatModerationService {
             if (essentials == null) {
                 return false;
             }
-            // Use reflection minimally — Essentials uses com.earth2me.essentials.IEssentials
             var getService = essentials.getClass().getMethod("getUser", Player.class);
             if (getService == null) {
                 return false;
@@ -263,12 +260,10 @@ public class ChatModerationService {
             return false;
         }
 
-        // Check obfuscated patterns
         if (OBFUSCATED_PROFANITY.matcher(message).find()) {
             return true;
         }
 
-        // Normalize and check against blocked terms
         String normalizedMessage = normalizeText(message);
         if (normalizedMessage.isEmpty()) {
             return false;
@@ -293,26 +288,38 @@ public class ChatModerationService {
         }
 
         Matcher matcher = URL_PATTERN.matcher(message);
-        if (!matcher.find()) {
+        while (matcher.find()) {
+            if (!isAllowedUrl(matcher.group())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isAllowedUrl(String rawUrl) {
+        if (allowedLinks.isEmpty()) {
             return false;
         }
 
-        if (allowedLinks.isEmpty()) {
-            return true;
+        String normalizedUrl = normalizeUrl(rawUrl);
+        String host = extractHost(rawUrl);
+        for (String allowed : allowedLinks) {
+            String normalizedAllowed = normalizeUrl(allowed);
+            if (normalizedAllowed.isEmpty()) {
+                continue;
+            }
+
+            if (!host.isEmpty() && (host.equals(normalizedAllowed) || host.endsWith("." + normalizedAllowed))) {
+                return true;
+            }
+
+            if (normalizedUrl.equals(normalizedAllowed) || normalizedUrl.startsWith(normalizedAllowed + "/")) {
+                return true;
+            }
         }
 
-        do {
-            String match = matcher.group();
-            String normalizedMatch = normalizeUrl(match);
-            for (String allowed : allowedLinks) {
-                String normalizedAllowed = normalizeUrl(allowed);
-                if (!normalizedAllowed.isEmpty() && normalizedMatch.contains(normalizedAllowed)) {
-                    return false;
-                }
-            }
-        } while (matcher.find());
-
-        return true;
+        return false;
     }
 
     private boolean hasExcessiveRepeating(String message) {
@@ -338,11 +345,34 @@ public class ChatModerationService {
         if (input == null) {
             return "";
         }
-        return input.toLowerCase(Locale.ROOT)
-                .replace("https://", "")
-                .replace("http://", "")
-                .replace("www.", "")
-                .replaceAll("[^a-z0-9./:-]+", "");
+        String normalized = trimTrailingUrlPunctuation(input.trim().toLowerCase(Locale.ROOT))
+                .replaceFirst("^https?://", "")
+                .replaceFirst("^www\\.", "");
+        return normalized.replaceAll("[^a-z0-9./:-]+", "");
+    }
+
+    private String extractHost(String input) {
+        if (input == null || input.isBlank()) {
+            return "";
+        }
+
+        String normalized = trimTrailingUrlPunctuation(input.trim().toLowerCase(Locale.ROOT));
+        try {
+            URI uri = URI.create(normalized.matches("(?i)^https?://.*") ? normalized : "http://" + normalized);
+            String host = uri.getHost();
+            if (host == null) {
+                return "";
+            }
+            return host.replaceFirst("^www\\.", "");
+        } catch (IllegalArgumentException ex) {
+            int slash = normalized.indexOf('/');
+            String host = slash >= 0 ? normalized.substring(0, slash) : normalized;
+            return host.replaceFirst("^www\\.", "").replaceAll("[^a-z0-9.-]+", "");
+        }
+    }
+
+    private String trimTrailingUrlPunctuation(String input) {
+        return input.replaceAll("[.,!?:;)}\\]]+$", "");
     }
 
     private String normalizeText(String input) {

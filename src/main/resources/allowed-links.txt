@@ -1,6 +1,7 @@
-discord.gg
-discord.com/invite
-t.me
-www.youtube.com
-www.twitch.tv
-www.github.com
+# Список разрешённых ссылок.
+# По умолчанию список пустой, поэтому ссылки блокируются.
+# Добавляйте только те домены, которые действительно можно писать в чат.
+#
+# Примеры:
+# discord.gg
+# your-server.ru

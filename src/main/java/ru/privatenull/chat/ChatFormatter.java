@@ -24,7 +24,6 @@ public class ChatFormatter {
     private final pnChatPlugin plugin;
     private final Map<UUID, Long> mentionSoundCooldown = new ConcurrentHashMap<>();
 
-    // cached config values
     private String localFormat;
     private String globalFormat;
     private String adminFormat;
@@ -48,9 +47,9 @@ public class ChatFormatter {
 
     public void reloadConfig() {
         var cfg = plugin.getConfig();
-        localFormat = cfg.getString("local-format", "&8[&aL&8] &7{player} &8» &f{message}");
-        globalFormat = cfg.getString("global-format", "&8[&dG&8] &f{player} &8» &f{message}");
-        adminFormat = cfg.getString("admin-format", "&8[&cADMIN&8] &f{player}&7: &f{message}");
+        localFormat = cfg.getString("local-format", "&8[&aL&8] %luckperms_prefix%&7{player} &8» &f{message}");
+        globalFormat = cfg.getString("global-format", "&8[&dG&8] %luckperms_prefix%&f{player} &8» &f{message}");
+        adminFormat = cfg.getString("admin-format", "&8[&cADMIN&8] %luckperms_prefix%&f{player}&7: &f{message}");
         mentionFormat = cfg.getString("mention-format", "&c@{player}");
         mentionSound = cfg.getString("mention-sound", "entity.experience_orb.pickup");
         mentionSoundVolume = (float) cfg.getDouble("mention-sound-volume", 1.0);
@@ -80,26 +79,21 @@ public class ChatFormatter {
             format = localFormat;
         }
 
-        // Sanitize and apply formatting
-        String processed = sanitizeMessage(player, message);
-
-        // Apply PlaceholderAPI
-        processed = applyPlaceholdersSoft(player, processed);
-
+        String processedMessage = sanitizeMessage(player, message);
         String luckPermsPrefix = getLuckPermsPrefixSoft(player);
 
-        String built = format
+        String formatWithNativePlaceholders = format
                 .replace("{player}", player.getName())
-                .replace("{message}", processed);
+                .replace("{display_name}", player.getDisplayName())
+                .replace("{world}", player.getWorld().getName())
+                .replace("{luckperms_prefix}", luckPermsPrefix)
+                .replace("{prefix}", luckPermsPrefix)
+                .replace("%luckperms_prefix%", luckPermsPrefix);
 
+        String formatWithExternalPlaceholders = applyPlaceholdersSoft(player, formatWithNativePlaceholders);
+        String built = formatWithExternalPlaceholders.replace("{message}", processedMessage);
         String result = ChatUtils.color(built);
-
-        // Prepend LuckPerms prefix if present
-        if (luckPermsPrefix != null && !luckPermsPrefix.isEmpty()) {
-            result = ChatUtils.color(luckPermsPrefix) + " " + result;
-        }
-
-        return result;
+        return allowHexColors ? ChatUtils.translateHex(result) : result;
     }
 
     public String formatMention(Player sender, Player target) {
@@ -138,9 +132,9 @@ public class ChatFormatter {
             }
             Object cachedData = user.getClass().getMethod("getCachedData").invoke(user);
             Object metaData = null;
-            for (Method m : cachedData.getClass().getMethods()) {
-                if (m.getParameterCount() == 0 && m.getName().equals("getMetaData")) {
-                    metaData = m.invoke(cachedData);
+            for (Method method : cachedData.getClass().getMethods()) {
+                if (method.getParameterCount() == 0 && method.getName().equals("getMetaData")) {
+                    metaData = method.invoke(cachedData);
                     break;
                 }
             }
@@ -159,10 +153,7 @@ public class ChatFormatter {
         if (input == null) {
             return "";
         }
-
-        String escaped = input.replace("\\", "\\\\");
-        escaped = escaped.replace("%", "%%");
-        return applyFormatting(player, escaped);
+        return applyFormatting(player, input.replace("\\", "\\\\"));
     }
 
     private String applyFormatting(Player player, String input) {
@@ -170,7 +161,6 @@ public class ChatFormatter {
             return "";
         }
 
-        // Check color permission
         if (colorPermRequired && !player.hasPermission(colorPermission)
                 && !player.hasPermission("pnchat.format")
                 && !player.hasPermission("pnchat.chatcolor")) {
@@ -178,13 +168,8 @@ public class ChatFormatter {
         }
 
         String result = formatMentions(player, input);
-
         result = ChatUtils.color(result);
-        if (allowHexColors) {
-            result = ChatUtils.translateHex(result);
-        }
-
-        return result;
+        return allowHexColors ? ChatUtils.translateHex(result) : result;
     }
 
     private String formatMentions(Player sender, String input) {

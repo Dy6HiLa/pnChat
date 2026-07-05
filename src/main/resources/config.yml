@@ -1,9 +1,11 @@
 # Радиус локального чата в блоках
 radius: 100
 
-# Формат сообщений для локального и глобального чата
-local-format: '&8[&aL&8] &7{player} &8» &f{message}'
-global-format: '&8[&dG&8] &f{player} &8» &f{message}'
+# Формат сообщений.
+# %luckperms_prefix% можно переставить в любое место строки.
+# Любые PlaceholderAPI-плейсхолдеры тоже можно использовать прямо здесь.
+local-format: '&8[&aL&8] %luckperms_prefix%&7{player} &8» &f{message}'
+global-format: '&8[&dG&8] %luckperms_prefix%&f{player} &8» &f{message}'
 
 # Упоминания игроков
 mention-format: '&c@{player}'
@@ -21,7 +23,7 @@ mention-sound-cooldown-ms: 4000
 # Админ-чат
 admin-chat-enabled: true
 admin-chat-permission: 'pnchat.admin'
-admin-format: '&8[&cADMIN&8] &f{player}&7: &f{message}'
+admin-format: '&8[&cADMIN&8] %luckperms_prefix%&f{player}&7: &f{message}'
 
 # Цвета и форматирование
 color-permission-required: false
