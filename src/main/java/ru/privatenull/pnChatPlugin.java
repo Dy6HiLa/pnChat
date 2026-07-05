@@ -16,6 +16,8 @@ import java.io.File;
 
 public final class pnChatPlugin extends JavaPlugin {
 
+    public static final String SUPPORT_DISCORD = "https://discord.gg/rRbzq6cnc6";
+
     private ChatMessageService messageService;
     private ChatFormatter formatter;
     private ChatModerationService moderationService;
@@ -44,9 +46,7 @@ public final class pnChatPlugin extends JavaPlugin {
                 new ChatListener(messageService, moderationService, adminChatService, this), this);
 
         setupUpdateChecker();
-
-        getLogger().info("pnChat включён. Локальный чат работает в радиусе "
-                + getConfig().getInt("radius", 100) + " блоков.");
+        logStartupMessage();
     }
 
     @Override
@@ -54,6 +54,7 @@ public final class pnChatPlugin extends JavaPlugin {
         if (updateChecker != null) {
             updateChecker.cancel();
         }
+        logShutdownMessage();
     }
 
     public void reloadPlugin() {
@@ -97,5 +98,31 @@ public final class pnChatPlugin extends JavaPlugin {
     private void setupUpdateChecker() {
         updateChecker = new UpdateChecker(this);
         updateChecker.reload();
+    }
+
+    private void logStartupMessage() {
+        logBanner();
+        getLogger().info("");
+        getLogger().info("pnChat v" + getDescription().getVersion() + " успешно включён!");
+        getLogger().info("Локальный чат: радиус " + getConfig().getInt("radius", 100) + " блоков.");
+        getLogger().info("Глобальный чат: префикс ! перед сообщением.");
+        getLogger().info("Упоминания: @ник и автоупоминания по нику онлайн-игрока.");
+        getLogger().info("Поддержка pnChat: " + SUPPORT_DISCORD);
+    }
+
+    private void logShutdownMessage() {
+        logBanner();
+        getLogger().info("");
+        getLogger().info("pnChat отключён");
+        getLogger().info("Поддержка pnChat: " + SUPPORT_DISCORD);
+    }
+
+    private void logBanner() {
+        getLogger().info("██████╗░██████╗░██╗██╗░░░██╗░█████╗░████████╗███████╗███╗░░██╗██╗░░░██╗██╗░░░░░██╗░░░░░");
+        getLogger().info("██╔══██╗██╔══██╗██║██║░░░██║██╔══██╗╚══██╔══╝██╔════╝████╗░██║██║░░░██║██║░░░░░██║░░░░░");
+        getLogger().info("██████╔╝██████╔╝██║╚██╗░██╔╝███████║░░░██║░░░█████╗░░██╔██╗██║██║░░░██║██║░░░░░██║░░░░░");
+        getLogger().info("██╔═══╝░██╔══██╗██║░╚████╔╝░██╔══██║░░░██║░░░██╔══╝░░██║╚████║██║░░░██║██║░░░░░██║░░░░░");
+        getLogger().info("██║░░░░░██║░░██║██║░░╚██╔╝░░██║░░██║░░░██║░░░███████╗██║░╚███║╚██████╔╝███████╗███████╗");
+        getLogger().info("╚═╝░░░░░╚═╝░░╚═╝╚═╝░░░╚═╝░░░╚═╝░░╚═╝░░░╚═╝░░░╚══════╝╚═╝░░╚══╝░╚═════╝░╚══════╝╚══════╝");
     }
 }
