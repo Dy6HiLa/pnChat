@@ -9,6 +9,18 @@ commands:
     description: Управление pnChat
     usage: /pnchat reload
     permission: pnchat.admin
+  chatcolor:
+    description: Устанавливает цвет чата игрока
+    usage: /chatcolor <цвет|none> <ник>
+    permission: pnchat.chatcolor
+  chatfont:
+    description: Устанавливает стиль чата игрока
+    usage: /chatfont <шрифт...|none> <ник>
+    permission: pnchat.chatfont
 permissions:
   pnchat.admin:
+    default: op
+  pnchat.chatcolor:
+    default: op
+  pnchat.chatfont:
     default: op

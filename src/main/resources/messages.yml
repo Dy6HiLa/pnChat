@@ -6,6 +6,14 @@ messages:
     no-nearby-players: '&eРядом никого нет. Сообщение доставлено только вам.'
   commands:
     usage: '&cИспользование: /pnchat reload | /pnchat ac'
+    chatcolor-usage: '&cИспользование: /chatcolor <цвет|none> <ник>'
+    chatfont-usage: '&cИспользование: /chatfont <шрифт...|none> <ник>'
+    invalid-chatcolor: '&cНеизвестный цвет.'
+    invalid-chatfont: '&cНеизвестный стиль чата.'
+    chatcolor-set: '&aЦвет чата игрока {player} установлен.'
+    chatcolor-reset: '&aЦвет чата игрока {player} сброшен.'
+    chatfont-set: '&aСтили чата игрока {player} установлены.'
+    chatfont-reset: '&aСтили чата игрока {player} сброшены.'
   moderation:
     spam: '&cПожалуйста, не спамьте.'
     caps: '&cНе злоупотребляйте CAPS LOCK.'

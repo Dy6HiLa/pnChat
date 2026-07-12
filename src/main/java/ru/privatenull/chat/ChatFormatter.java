@@ -22,6 +22,7 @@ public class ChatFormatter {
     private static final Pattern MENTION_PATTERN = Pattern.compile("(?<![A-Za-z0-9_&@#./:-])@?([A-Za-z0-9_]{1,16})(?![A-Za-z0-9_])");
 
     private final pnChatPlugin plugin;
+    private final ChatStyleService styleService;
     private final Map<UUID, Long> mentionSoundCooldown = new ConcurrentHashMap<>();
 
     private String localFormat;
@@ -40,8 +41,9 @@ public class ChatFormatter {
     private boolean colorPermRequired;
     private String colorPermission;
 
-    public ChatFormatter(pnChatPlugin plugin) {
+    public ChatFormatter(pnChatPlugin plugin, ChatStyleService styleService) {
         this.plugin = plugin;
+        this.styleService = styleService;
         reloadConfig();
     }
 
@@ -79,7 +81,7 @@ public class ChatFormatter {
             format = localFormat;
         }
 
-        String processedMessage = sanitizeMessage(player, message);
+        String processedMessage = styleService.apply(player.getUniqueId(), sanitizeMessage(player, message));
         String luckPermsPrefix = getLuckPermsPrefixSoft(player);
 
         String formatWithNativePlaceholders = format

@@ -9,6 +9,8 @@ import ru.privatenull.chat.ChatFormatter;
 import ru.privatenull.chat.ChatListener;
 import ru.privatenull.chat.ChatMessageService;
 import ru.privatenull.chat.ChatModerationService;
+import ru.privatenull.chat.ChatStyleCommandExecutor;
+import ru.privatenull.chat.ChatStyleService;
 import ru.privatenull.chat.ChatTabCompleter;
 import ru.privatenull.update.UpdateChecker;
 
@@ -20,6 +22,7 @@ public final class pnChatPlugin extends JavaPlugin {
 
     private ChatMessageService messageService;
     private ChatFormatter formatter;
+    private ChatStyleService styleService;
     private ChatModerationService moderationService;
     private AdminChatService adminChatService;
     private UpdateChecker updateChecker;
@@ -34,13 +37,19 @@ public final class pnChatPlugin extends JavaPlugin {
         File messagesFile = new File(getDataFolder(), "messages.yml");
         messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
 
-        formatter = new ChatFormatter(this);
+        styleService = new ChatStyleService(this);
+        formatter = new ChatFormatter(this, styleService);
         moderationService = new ChatModerationService(this);
         messageService = new ChatMessageService(this, formatter);
         adminChatService = new AdminChatService(this);
 
         getCommand("pnchat").setExecutor(new ChatCommandExecutor(this, messageService, adminChatService));
         getCommand("pnchat").setTabCompleter(new ChatTabCompleter());
+        ChatStyleCommandExecutor styleCommands = new ChatStyleCommandExecutor(this, styleService);
+        getCommand("chatcolor").setExecutor(styleCommands);
+        getCommand("chatcolor").setTabCompleter(styleCommands);
+        getCommand("chatfont").setExecutor(styleCommands);
+        getCommand("chatfont").setTabCompleter(styleCommands);
 
         getServer().getPluginManager().registerEvents(
                 new ChatListener(messageService, moderationService, adminChatService, this), this);
