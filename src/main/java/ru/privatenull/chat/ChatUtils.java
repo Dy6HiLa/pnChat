@@ -12,6 +12,7 @@ public final class ChatUtils {
     private static final Pattern STRIP_AMPERSAND = Pattern.compile("(?i)&[0-9a-fk-orx]");
     private static final Pattern STRIP_SECTION = Pattern.compile("§[0-9a-fk-orx]");
     private static final Pattern STRIP_HEX_AMPERSAND = Pattern.compile("(?i)&#[0-9a-f]{6}");
+    private static final Pattern STRIP_HEX_LEGACY = Pattern.compile("(?i)#[0-9a-f]{6}");
 
     private ChatUtils() {
     }
@@ -62,6 +63,7 @@ public final class ChatUtils {
         String result = input;
         result = result.replace("&&", "\\&");
         result = STRIP_HEX_AMPERSAND.matcher(result).replaceAll("");
+        result = STRIP_HEX_LEGACY.matcher(result).replaceAll("");
         result = STRIP_AMPERSAND.matcher(result).replaceAll("");
         result = STRIP_SECTION.matcher(result).replaceAll("");
         result = result.replace("\\&", "&");

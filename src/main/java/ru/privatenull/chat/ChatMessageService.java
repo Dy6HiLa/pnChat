@@ -29,6 +29,7 @@ public class ChatMessageService {
 
         int radius = plugin.getConfig().getInt("radius", 100);
         String formatted = formatter.format(sender, "local", message);
+        sendToConsole(formatted);
         List<Player> recipients = new ArrayList<>();
 
         for (Player player : sender.getWorld().getPlayers()) {
@@ -64,6 +65,7 @@ public class ChatMessageService {
         }
 
         String formatted = formatter.format(sender, "global", message);
+        sendToConsole(formatted);
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.sendMessage(formatted);
         }
@@ -82,6 +84,7 @@ public class ChatMessageService {
         }
 
         String formatted = formatter.format(sender, "admin", message);
+        sendToConsole(formatted);
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.hasPermission("pnchat.admin")) {
                 player.sendMessage(formatted);
@@ -102,5 +105,9 @@ public class ChatMessageService {
 
     public void dispatchAdminChat(Player sender, String message) {
         dispatchAdminChat(null, sender, message);
+    }
+
+    private void sendToConsole(String formatted) {
+        plugin.getServer().getConsoleSender().sendMessage(formatted);
     }
 }

@@ -82,20 +82,49 @@ public class ChatFormatter {
         }
 
         String processedMessage = styleService.apply(player.getUniqueId(), sanitizeMessage(player, message));
-        String luckPermsPrefix = getLuckPermsPrefixSoft(player);
+        String chatName = styleService.getNickname(player.getUniqueId(), player.getName());
+        String displayName = styleService.getNickname(player.getUniqueId(), player.getDisplayName());
+        String customPrefix = styleService.getCustomPrefix(player.getUniqueId());
+        String rawPrefix = customPrefix == null
+                ? getLuckPermsPrefixSoft(player)
+                : customPrefix;
+        String effectivePrefix = withTrailingSpace(rawPrefix);
+        String effectiveFormat = addImplicitPrefix(format, effectivePrefix);
 
-        String formatWithNativePlaceholders = format
-                .replace("{player}", player.getName())
-                .replace("{display_name}", player.getDisplayName())
+        String formatWithNativePlaceholders = effectiveFormat
+                .replace("{player}", chatName)
+                .replace("{display_name}", displayName)
+                .replace("{real_name}", player.getName())
                 .replace("{world}", player.getWorld().getName())
-                .replace("{luckperms_prefix}", luckPermsPrefix)
-                .replace("{prefix}", luckPermsPrefix)
-                .replace("%luckperms_prefix%", luckPermsPrefix);
+                .replace("{luckperms_prefix}", effectivePrefix)
+                .replace("{prefix}", effectivePrefix)
+                .replace("%luckperms_prefix%", effectivePrefix);
 
         String formatWithExternalPlaceholders = applyPlaceholdersSoft(player, formatWithNativePlaceholders);
         String built = formatWithExternalPlaceholders.replace("{message}", processedMessage);
         String result = ChatUtils.color(built);
         return allowHexColors ? ChatUtils.translateHex(result) : result;
+    }
+
+    private String withTrailingSpace(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return "";
+        }
+        return Character.isWhitespace(prefix.charAt(prefix.length() - 1)) ? prefix : prefix + " ";
+    }
+
+    private String addImplicitPrefix(String format, String prefix) {
+        if (prefix.isEmpty() || format.contains("{prefix}")
+                || format.contains("{luckperms_prefix}") || format.contains("%luckperms_prefix%")) {
+            return format;
+        }
+        if (format.contains("{player}")) {
+            return format.replace("{player}", "{prefix}{player}");
+        }
+        if (format.contains("{display_name}")) {
+            return format.replace("{display_name}", "{prefix}{display_name}");
+        }
+        return "{prefix}" + format;
     }
 
     public String formatMention(Player sender, Player target) {

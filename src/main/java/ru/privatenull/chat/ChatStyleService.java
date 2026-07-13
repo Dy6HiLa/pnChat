@@ -30,15 +30,43 @@ public class ChatStyleService {
         return color + String.join("", fonts) + message;
     }
 
+    public String getNickname(UUID playerId, String fallback) {
+        String nickname = config.getString("players." + playerId + ".nickname");
+        return nickname == null || nickname.isBlank() ? fallback : nickname;
+    }
+
+    public String getCustomPrefix(UUID playerId) {
+        String prefix = config.getString("players." + playerId + ".prefix");
+        return prefix == null || prefix.isBlank() ? null : prefix;
+    }
+
     public void setColor(UUID playerId, String color) {
         String path = "players." + playerId + ".color";
-        config.set(path, color);
+        config.set(path, color == null || color.isBlank() ? null : color);
         save();
     }
 
     public void setFonts(UUID playerId, List<String> fonts) {
         String path = "players." + playerId + ".fonts";
-        config.set(path, fonts);
+        config.set(path, fonts == null || fonts.isEmpty() ? null : fonts);
+        save();
+    }
+
+    public void setNickname(UUID playerId, String nickname) {
+        setTextValue(playerId, "nickname", nickname);
+    }
+
+    public void setCustomPrefix(UUID playerId, String prefix) {
+        setTextValue(playerId, "prefix", prefix);
+    }
+
+    public void reload() {
+        config = YamlConfiguration.loadConfiguration(file);
+    }
+
+    private void setTextValue(UUID playerId, String key, String value) {
+        String path = "players." + playerId + "." + key;
+        config.set(path, value == null || value.isBlank() ? null : value);
         save();
     }
 

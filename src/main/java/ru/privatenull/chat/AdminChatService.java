@@ -51,6 +51,7 @@ public class AdminChatService {
 
         String format = plugin.getConfig().getString("admin-format", "&8[&cADMIN&8] &f{player}&7: &f{message}");
         String formatted = ChatUtils.color(format.replace("{player}", sender.getName()).replace("{message}", message));
+        Bukkit.getConsoleSender().sendMessage(formatted);
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.hasPermission(permission)) {
                 player.sendMessage(formatted);

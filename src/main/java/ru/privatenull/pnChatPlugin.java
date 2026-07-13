@@ -2,7 +2,9 @@ package ru.privatenull;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bstats.bukkit.Metrics;
 import ru.privatenull.chat.AdminChatService;
 import ru.privatenull.chat.ChatCommandExecutor;
 import ru.privatenull.chat.ChatFormatter;
@@ -12,13 +14,17 @@ import ru.privatenull.chat.ChatModerationService;
 import ru.privatenull.chat.ChatStyleCommandExecutor;
 import ru.privatenull.chat.ChatStyleService;
 import ru.privatenull.chat.ChatTabCompleter;
-import ru.privatenull.update.UpdateChecker;
+import ru.privatenull.pnlibrary.lifecycle.PluginBanner;
+import ru.privatenull.pnlibrary.update.UpdateChecker;
+import ru.privatenull.pnlibrary.update.UpdateSettings;
 
 import java.io.File;
 
 public final class pnChatPlugin extends JavaPlugin {
 
     public static final String SUPPORT_DISCORD = "https://discord.gg/rRbzq6cnc6";
+    private static final String GITHUB_REPOSITORY = "Dy6HiLa/pnChat";
+    private static final int BSTATS_PLUGIN_ID = 32607;
 
     private ChatMessageService messageService;
     private ChatFormatter formatter;
@@ -43,19 +49,22 @@ public final class pnChatPlugin extends JavaPlugin {
         messageService = new ChatMessageService(this, formatter);
         adminChatService = new AdminChatService(this);
 
-        getCommand("pnchat").setExecutor(new ChatCommandExecutor(this, messageService, adminChatService));
-        getCommand("pnchat").setTabCompleter(new ChatTabCompleter());
+        PluginCommand mainCommand = requireCommand("pnchat");
+        mainCommand.setExecutor(new ChatCommandExecutor(this, messageService, adminChatService));
+        mainCommand.setTabCompleter(new ChatTabCompleter());
         ChatStyleCommandExecutor styleCommands = new ChatStyleCommandExecutor(this, styleService);
-        getCommand("chatcolor").setExecutor(styleCommands);
-        getCommand("chatcolor").setTabCompleter(styleCommands);
-        getCommand("chatfont").setExecutor(styleCommands);
-        getCommand("chatfont").setTabCompleter(styleCommands);
+        registerStyleCommand("chatcolor", styleCommands);
+        registerStyleCommand("chatfont", styleCommands);
+        registerStyleCommand("nick", styleCommands);
+        registerStyleCommand("prefix", styleCommands);
 
         getServer().getPluginManager().registerEvents(
                 new ChatListener(messageService, moderationService, adminChatService, this), this);
 
         setupUpdateChecker();
-        logStartupMessage();
+        new Metrics(this, BSTATS_PLUGIN_ID);
+        PluginBanner.enabled(this, SUPPORT_DISCORD);
+        logStartupDetails();
     }
 
     @Override
@@ -63,19 +72,20 @@ public final class pnChatPlugin extends JavaPlugin {
         if (updateChecker != null) {
             updateChecker.cancel();
         }
-        logShutdownMessage();
+        PluginBanner.disabled(this, SUPPORT_DISCORD);
     }
 
     public void reloadPlugin() {
         reloadConfig();
         File messagesFile = new File(getDataFolder(), "messages.yml");
         messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
+        styleService.reload();
         formatter.reloadConfig();
         moderationService.reloadConfig();
         moderationService.loadLists();
         adminChatService.reloadConfig();
         if (updateChecker != null) {
-            updateChecker.reload();
+            updateChecker.restart(updateSettings());
         }
         getLogger().info("pnChat: конфигурация перезагружена.");
     }
@@ -105,33 +115,32 @@ public final class pnChatPlugin extends JavaPlugin {
     }
 
     private void setupUpdateChecker() {
-        updateChecker = new UpdateChecker(this);
-        updateChecker.reload();
+        updateChecker = new UpdateChecker(this, updateSettings());
+        updateChecker.start();
     }
 
-    private void logStartupMessage() {
-        logBanner();
-        getLogger().info("");
-        getLogger().info("pnChat v" + getDescription().getVersion() + " успешно включён!");
+    private UpdateSettings updateSettings() {
+        return new UpdateSettings(true, GITHUB_REPOSITORY, "pnchat.admin", 6L, SUPPORT_DISCORD);
+    }
+
+    private PluginCommand requireCommand(String name) {
+        PluginCommand command = getCommand(name);
+        if (command == null) {
+            throw new IllegalStateException("Команда /" + name + " отсутствует в plugin.yml");
+        }
+        return command;
+    }
+
+    private void registerStyleCommand(String name, ChatStyleCommandExecutor executor) {
+        PluginCommand command = requireCommand(name);
+        command.setExecutor(executor);
+        command.setTabCompleter(executor);
+    }
+
+    private void logStartupDetails() {
         getLogger().info("Локальный чат: радиус " + getConfig().getInt("radius", 100) + " блоков.");
         getLogger().info("Глобальный чат: префикс ! перед сообщением.");
         getLogger().info("Упоминания: @ник и автоупоминания по нику онлайн-игрока.");
-        getLogger().info("Поддержка pnChat: " + SUPPORT_DISCORD);
-    }
-
-    private void logShutdownMessage() {
-        logBanner();
-        getLogger().info("");
-        getLogger().info("pnChat отключён");
-        getLogger().info("Поддержка pnChat: " + SUPPORT_DISCORD);
-    }
-
-    private void logBanner() {
-        getLogger().info("██████╗░██████╗░██╗██╗░░░██╗░█████╗░████████╗███████╗███╗░░██╗██╗░░░██╗██╗░░░░░██╗░░░░░");
-        getLogger().info("██╔══██╗██╔══██╗██║██║░░░██║██╔══██╗╚══██╔══╝██╔════╝████╗░██║██║░░░██║██║░░░░░██║░░░░░");
-        getLogger().info("██████╔╝██████╔╝██║╚██╗░██╔╝███████║░░░██║░░░█████╗░░██╔██╗██║██║░░░██║██║░░░░░██║░░░░░");
-        getLogger().info("██╔═══╝░██╔══██╗██║░╚████╔╝░██╔══██║░░░██║░░░██╔══╝░░██║╚████║██║░░░██║██║░░░░░██║░░░░░");
-        getLogger().info("██║░░░░░██║░░██║██║░░╚██╔╝░░██║░░██║░░░██║░░░███████╗██║░╚███║╚██████╔╝███████╗███████╗");
-        getLogger().info("╚═╝░░░░░╚═╝░░╚═╝╚═╝░░░╚═╝░░░╚═╝░░╚═╝░░░╚═╝░░░╚══════╝╚═╝░░╚══╝░╚═════╝░╚══════╝╚══════╝");
+        getLogger().info("Анонимная статистика bStats: ID " + BSTATS_PLUGIN_ID + ".");
     }
 }
