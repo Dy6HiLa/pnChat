@@ -99,9 +99,26 @@ public class ChatModerationService {
             return false;
         }
         return isEssentialsMuted(player)
+                || isPnBansMuted(player)
                 || isLiteBansMuted(player)
                 || isAdvancedBanMuted(player)
                 || isCmiMuted(player);
+    }
+
+    /** Optional pnBans API integration; no compile-time dependency is required. */
+    private boolean isPnBansMuted(Player player) {
+        try {
+            Class<?> apiClass = Class.forName("ru.privatenull.pnbans.api.PnBansMuteApi");
+            Object api = Bukkit.getServicesManager().load(apiClass);
+            if (api == null) return false;
+            var method = apiClass.getMethod("isMuted", UUID.class, String.class);
+            return Boolean.TRUE.equals(method.invoke(api, player.getUniqueId(), player.getName()));
+        } catch (ClassNotFoundException ignored) {
+            return false;
+        } catch (Throwable ex) {
+            plugin.getLogger().fine("Не удалось проверить mute через pnBans API: " + ex.getMessage());
+            return false;
+        }
     }
 
     private boolean isEssentialsMuted(Player player) {
